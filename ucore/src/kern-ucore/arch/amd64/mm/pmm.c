@@ -49,14 +49,16 @@ pgd_t *const vgd = (pgd_t *) PGADDR(PGX(VPT), PGX(VPT), PGX(VPT), PGX(VPT), 0);
  * the %ss register, the CPL must equal the DPL. Thus, we must duplicate the
  * segments for the user and the kernel. Defined as follows:
  *   - 0x0 :  unused (always faults -- for trapping NULL far pointers)
- *   - 0x10:  kernel code segment
- *   - 0x20:  kernel data segment
- *   - 0x30:  kernel pls segment
- *   - 0x40:  user code segment
- *   - 0x50:  user data segment
- *   - 0x60:  defined for tss, initialized in gdt_init
+ *   - 0x08:  kernel code segment
+ *   - 0x10:  kernel data segment
+ *   - 0x18:  kernel pls segment
+ *   - 0x20:  user code segment
+ *   - 0x28:  user data segment
+ *   - 0x30:  defined for tss, initialized in gdt_init
+ *   - 0x40:  out of boundary
  * */
-static struct segdesc gdt[8 + LAPIC_COUNT] = {
+
+static struct segdesc gdt[9 + LAPIC_COUNT] = {
 	SEG_NULL,
 	[SEG_KTEXT] = SEG(STA_X | STA_R, DPL_KERNEL),
 	[SEG_KDATA] = SEG(STA_W, DPL_KERNEL),
@@ -151,14 +153,17 @@ size_t nr_used_pages(void)
 }
 
 /* gdt_init - initialize the default GDT and TSS */
-static void gdt_init(void)
+void gdt_init(void)
 {
 	// initialize the TSS filed of the gdt
-	gdt[SEG_TSS] =
-		SEGTSS(STS_T32A, (uintptr_t) & ts, sizeof(ts), DPL_KERNEL);
+	struct segdesc_tss* tss_ptr = (struct segdesc_tss*)&gdt[SEG_TSS]; //type cast for different size of segdesc
+	//gdt[SEG_TSS] =
+	*tss_ptr = SEGTSS(STS_T32A, (uintptr_t) & ts, sizeof(ts), DPL_KERNEL);
 
 	// reload all segment registers
+kprintf("lgdt\n");
 	lgdt(&gdt_pd);
+kprintf("lgdt fin\n");
 
 	// load the TSS
 	ltr(GD_TSS);

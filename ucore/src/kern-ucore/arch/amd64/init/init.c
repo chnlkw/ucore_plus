@@ -62,6 +62,8 @@ int kern_init(void)
 	idt_init();		// init interrupt descriptor table
 	pic_init();		// init interrupt controller
 
+	syscall_init(); // init fast syscall using SYSCALL op
+
 //	acpi_conf_init();
 	lapic_init();
 	numa_init();

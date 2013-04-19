@@ -58,10 +58,11 @@ pgd_t *const vgd = (pgd_t *) PGADDR(PGX(VPT), PGX(VPT), PGX(VPT), PGX(VPT), 0);
  *   - 0x40:  out of boundary
  * */
 
-static struct segdesc gdt[9 + LAPIC_COUNT] = {
+static struct segdesc gdt[10 + LAPIC_COUNT] = {
 	SEG_NULL,
 	[SEG_KTEXT] = SEG(STA_X | STA_R, DPL_KERNEL),
 	[SEG_KDATA] = SEG(STA_W, DPL_KERNEL),
+	[SEG_UTEXT_32] = SEG(STA_X | STA_R, DPL_USER),
 	[SEG_UTEXT] = SEG(STA_X | STA_R, DPL_USER),
 	[SEG_UDATA] = SEG(STA_W, DPL_USER),
 	[SEG_TLS1] = SEG(STA_W, DPL_USER),
@@ -117,7 +118,50 @@ void load_rsp0(uintptr_t rsp0)
 {
 	ts.ts_rsp0 = rsp0;
 }
+/*
+inline void prrsp()
+{
+	void *p;
+	__asm__ __volatile("movq %%rsp, %0": "=r"(p):);
+	kprintf("RSP = 0x%x   TSS.tsp0 = 0x%x\n", p, ts.ts_rsp0);
+}
+*/
+uint64_t user_rflags;
+uint64_t user_rip;
+uint64_t user_rsp;
+uint64_t fastcall_id;
 
+void fastcall_entry()
+{
+	__asm__ __volatile (
+		"movq %%rax, %0 \n"
+		"movq %%r11, %1 \n"
+		"movq %%rcx, %2 \n"
+		"movq %%rsp, %3 \n"
+		: "=m"(fastcall_id), "=m"(user_rflags), "=m"(user_rip), "=m"(user_rsp)
+		:
+		: "rax", "rdi", "rsi", "rdx", "r10", "r8", "r9", "rcx", "r11");
+	__asm__ __volatile(
+		"movq %0, %%rsp"
+		:
+		: "m"(ts.ts_rsp0)
+		: "rax", "rdi", "rsi", "rdx", "r10", "r8", "r9", "rcx", "r11");
+
+	__asm__ __volatile(
+		"int %0"
+		:
+		: "i"(T_FAST_SYSCALL)
+	);
+
+	__asm__ __volatile (
+		"movq %0, %%r11 \n"
+		"movq %1, %%rcx \n"
+		"movq %2, %%rsp \n"
+		:
+		: "m"(user_rflags), "m"(user_rip), "m"(user_rsp)
+		: "rax", "rdi", "rsi", "rdx", "r10", "r8", "r9", "rcx", "r11");
+//prrsp();
+}
 /**
  * set_pgdir - save the physical address of the current pgdir
  */
@@ -161,9 +205,7 @@ void gdt_init(void)
 	*tss_ptr = SEGTSS(STS_T32A, (uintptr_t) & ts, sizeof(ts), DPL_KERNEL);
 
 	// reload all segment registers
-kprintf("lgdt\n");
 	lgdt(&gdt_pd);
-kprintf("lgdt fin\n");
 
 	// load the TSS
 	ltr(GD_TSS);

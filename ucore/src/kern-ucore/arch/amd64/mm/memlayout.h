@@ -7,15 +7,17 @@
 #define SEG_KTEXT   1
 #define SEG_KDATA   2
 #define SEG_KPLS    3
-#define SEG_UTEXT   4
+#define SEG_UTEXT_32   4
 #define SEG_UDATA   5
-#define SEG_TLS1    6
-#define SEG_TLS2    7
-#define SEG_TSS     8
+#define SEG_UTEXT   6
+#define SEG_TLS1    7
+#define SEG_TLS2    8
+#define SEG_TSS     9
 
 /* global descrptor numbers */
 #define GD_KTEXT    ((SEG_KTEXT) << 3)	// kernel text
 #define GD_KDATA    ((SEG_KDATA) << 3)	// kernel data
+#define GD_UTEXT_32 ((SEG_UTEXT_32) << 3)	// user text compatiblity mode
 #define GD_UTEXT    ((SEG_UTEXT) << 3)	// user text
 #define GD_UDATA    ((SEG_UDATA) << 3)	// user data
 #define GD_TLS1     ((SEG_TLS1) << 3)

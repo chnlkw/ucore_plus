@@ -32,7 +32,7 @@
  * mode, the x86-64 CPU will look in the TSS for SS0 and RSP0 and load their value
  * into SS and RSP respectively.
  * */
-static struct taskstate ts = {0};
+struct taskstate ts = {0};
 uintptr_t boot_cr3;
 
 static uintptr_t freemem;
@@ -117,6 +117,7 @@ static inline void lgdt(struct pseudodesc *pd)
 void load_rsp0(uintptr_t rsp0)
 {
 	ts.ts_rsp0 = rsp0;
+	//kprintf("STORE TSS RSP0 : 0x%x  <- 0x%x\n", &ts, rsp0);
 }
 /*
 inline void prrsp()
@@ -131,8 +132,10 @@ uint64_t user_rip;
 uint64_t user_rsp;
 uint64_t fastcall_id;
 
-void fastcall_entry()
+void fastcall_entry() __attribute__((noreturn));
+void fastcall_entry() 
 {
+	__asm__ __volatile ("swapgs\n");
 	__asm__ __volatile (
 		"movq %%rax, %0 \n"
 		"movq %%r11, %1 \n"
@@ -160,6 +163,9 @@ void fastcall_entry()
 		:
 		: "m"(user_rflags), "m"(user_rip), "m"(user_rsp)
 		: "rax", "rdi", "rsi", "rdx", "r10", "r8", "r9", "rcx", "r11");
+	__asm__ __volatile ("swapgs\n");
+	__asm__ __volatile ("sysretq\n");
+	__asm__ __volatile ("hlt\n");
 //prrsp();
 }
 /**

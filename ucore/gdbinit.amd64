@@ -7,4 +7,4 @@ x/i $pc
 end
 br  __panic
 #b syscall_linux
-b do_debug
+#b do_debug

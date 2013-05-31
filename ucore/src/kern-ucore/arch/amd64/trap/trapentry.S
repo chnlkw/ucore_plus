@@ -8,15 +8,12 @@
 .type syscall_entry, %function
 syscall_entry:
 	swapgs
-	movabs $user_rsp, %r14
-	movabs $ts, %r12
-	mov %rsp, (%r14)
-	mov 0x4(%r12), %rsp
+	movq %rsp, %gs:0x10
+	movq %gs:0x8, %rsp
 	int $0x83
 .globl syscall_exit
 syscall_exit:
-	movabs $user_rsp, %r14
-	mov (%r14), %rsp
+	movq %gs:0x10, %rsp
 	swapgs
 	sysretq
 

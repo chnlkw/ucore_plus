@@ -450,6 +450,19 @@ static uint64_t __sys_linux_fcntl(uint64_t arg[])
 	return sysfile_linux_fcntl64(arg[0], arg[1], arg[2]);
 }
 
+static uint64_t __sys_linux_getdents(uint64_t arg[])
+{
+	int fd = (int)arg[0];
+	struct dirent *dir = (struct dirent *)arg[1];
+	uint64_t count = arg[2];
+	if (count < sizeof(struct dirent))
+		return -1;
+	int ret = sysfile_getdirentry(fd, dir, (uint32_t *)&count);
+	if (ret < 0)
+		return -1;
+	return count;
+}
+
 static uint64_t sys_linux_mmap(uint64_t arg[])
 {
 	void *addr = (void *)arg[0];
@@ -732,7 +745,7 @@ static uint64_t(*syscalls_linux[305]) (uint64_t arg[]) = {
 	[__NR_epoll_ctl_old] unknown,
 	[__NR_epoll_wait_old] unknown,
 	[__NR_remap_file_pages] unknown,
-	[__NR_getdents64] unknown,
+	[__NR_getdents64] __sys_linux_getdents,
 	[__NR_set_tid_address] unknown,
 	[__NR_restart_syscall] unknown,
 	[__NR_semtimedop] unknown,

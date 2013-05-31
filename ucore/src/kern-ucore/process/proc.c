@@ -24,6 +24,7 @@
 #include <mp.h>
 #include <resource.h>
 #include <sysconf.h>
+#include <refcache.h>
 
 /* ------------- process/thread mechanism design&implementation -------------
 (an simplified Linux process/thread mechanism )
@@ -566,6 +567,8 @@ int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
 	if ((proc = alloc_proc()) == NULL) {
 		goto fork_out;
 	}
+	if(clone_flags & __CLONE_PINCPU)
+		proc->flags |= PF_PINCPU;
 
 	proc->parent = current;
 	list_init(&(proc->thread_group));
@@ -651,7 +654,6 @@ static int __do_exit(void)
 
 	struct mm_struct *mm = current->mm;
 	if (mm != NULL) {
-		mm->cpuid = -1;
 		mp_set_mm_pagetable(NULL);
 		if (mm_count_dec(mm) == 0) {
 			exit_mmap(mm);
@@ -922,7 +924,7 @@ static int load_icode(int fd, int argc, char **kargv, int envc, char **kenvp)
 		}
 
 		if (ph->p_va == 0 && !bias) {
-			bias = 0x30800000;
+			bias = 0x00008000;
 		}
 
 		if ((ret = map_ph(fd, ph, mm, &bias, 0)) != 0) {
@@ -1096,7 +1098,6 @@ static int load_icode(int fd, int argc, char **kargv, int envc, char **kenvp)
 	mm_count_inc(mm);
 	current->mm = mm;
 	set_pgdir(current, mm->pgdir);
-	mm->cpuid = myid();
 	mp_set_mm_pagetable(mm);
 
 	if (!is_dynamic) {
@@ -1236,7 +1237,6 @@ int do_execve(const char *filename, const char **argv, const char **envp)
 	}
 
 	if (mm != NULL) {
-		mm->cpuid = -1;
 		mp_set_mm_pagetable(NULL);
 		if (mm_count_dec(mm) == 0) {
 			exit_mmap(mm);
@@ -2035,7 +2035,7 @@ void proc_init(void)
 
 	idle->pid = cpuid;
 	idle->state = PROC_RUNNABLE;
-	// XXX
+	// No need to be set for kthread (no privilege switch)
 	// idleproc->kstack = (uintptr_t)bootstack;
 	idle->need_resched = 1;
 	idle->tf = NULL;
@@ -2077,7 +2077,7 @@ void proc_init_ap(void)
 
 	idle->pid = cpuid;
 	idle->state = PROC_RUNNABLE;
-	// XXX
+	// No need to be set for kthread (no privilege switch)
 	// idle->kstack = (uintptr_t)bootstack;
 	idle->need_resched = 1;
 	idle->tf = NULL;
@@ -2094,6 +2094,18 @@ void proc_init_ap(void)
 
 	idleproc = idle;
 	current = idle;
+#if 0
+	int pid;
+	char proc_name[32];
+	if((pid = ucore_kernel_thread(krefcache_cleaner, NULL, 0)) <= 0){
+		panic("krefcache_cleaner init failed.\n");
+	}
+	struct proc_struct* cleaner = find_proc(pid);
+	snprintf(proc_name, 32, "krefcache/%d", myid());
+	set_proc_name(cleaner, proc_name);
+	set_proc_cpu_affinity(cleaner, myid());
+	nr_process++;
+#endif
 
 	assert(idleproc != NULL && idleproc->pid == cpuid);
 }

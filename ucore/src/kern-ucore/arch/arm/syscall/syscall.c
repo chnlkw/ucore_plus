@@ -548,7 +548,7 @@ static uint32_t __sys_linux_getdents(uint32_t arg[])
 	struct dirent *dir = (struct dirent *)arg[1];
 	uint32_t count = arg[2];
 	if (count < sizeof(struct dirent))
-		return -1;
+		return -2;
 	int ret = sysfile_getdirentry(fd, dir, &count);
 	if (ret < 0)
 		return -1;

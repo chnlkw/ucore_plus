@@ -6,13 +6,13 @@
 /* global segment number */
 #define SEG_KTEXT   1
 #define SEG_KDATA   2
-#define SEG_KPLS    3
-#define SEG_UTEXT_32   4
-#define SEG_UDATA   5
-#define SEG_UTEXT   6
-#define SEG_TLS1    7
-#define SEG_TLS2    8
-#define SEG_TSS     9
+//#define SEG_KPLS    3
+#define SEG_UTEXT_32   3
+#define SEG_UDATA   4
+#define SEG_UTEXT   5
+//#define SEG_TLS1    7
+//#define SEG_TLS2    8
+#define SEG_TSS     6
 
 /* global descrptor numbers */
 #define GD_KTEXT    ((SEG_KTEXT) << 3)	// kernel text
@@ -22,6 +22,16 @@
 #define GD_UDATA    ((SEG_UDATA) << 3)	// user data
 #define GD_TLS1     ((SEG_TLS1) << 3)
 #define GD_TLS2     ((SEG_TLS2) << 3)
+#define GD_TSS      ((SEG_TSS) << 3)	// task segment selector
+#define SEG_COUNT  (SEG_TSS+2)
+
+/* global descrptor numbers */
+#define GD_KTEXT    ((SEG_KTEXT) << 3)	// kernel text
+#define GD_KDATA    ((SEG_KDATA) << 3)	// kernel data
+#define GD_UTEXT    ((SEG_UTEXT) << 3)	// user text
+#define GD_UDATA    ((SEG_UDATA) << 3)	// user data
+//#define GD_TLS1     ((SEG_TLS1) << 3)
+//#define GD_TLS2     ((SEG_TLS2) << 3)
 #define GD_TSS      ((SEG_TSS) << 3)	// task segment selector
 
 #define DPL_KERNEL  (0)
@@ -166,10 +176,12 @@ struct Page {
 #define le2page(le, member)                 \
     to_struct((le), struct Page, member)
 
+struct numa_mem_zone;
 /* free_area_t - maintains a doubly linked list to record free (unused) pages */
 typedef struct {
 	list_entry_t free_list;	// the list header
 	unsigned int nr_free;	// # of free pages in this free list
+	struct numa_mem_zone *zone;
 } free_area_t;
 
 #endif /* !__ASSEMBLER__ */

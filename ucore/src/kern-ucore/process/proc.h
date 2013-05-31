@@ -67,7 +67,13 @@ struct proc_struct {
 	struct proc_signal signal_info;
 
 	void *tls_pointer;
+
+	int cpu_affinity;
 };
+
+#define PROC_CPU_NO_AFFINITY (-1)
+#define set_proc_cpu_affinity(proc, cpuid) \
+	do{(proc)->cpu_affinity = cpuid;}while(0)
 
 struct linux_timespec {
 	long tv_sec;		/* seconds */
@@ -75,6 +81,7 @@ struct linux_timespec {
 };
 
 #define PF_EXITING                  0x00000001	// getting shutdown
+#define PF_PINCPU                   0x00000002
 
 //the wait state
 #define WT_CHILD                    (0x00000001 | WT_INTERRUPTED)	// wait child process
@@ -97,7 +104,7 @@ struct linux_timespec {
 #define le2proc(le, member)         \
   to_struct((le), struct proc_struct, member)
 
-#define current (mycpu()->current)
+#define current (mycpu()->__current)
 #define idleproc (mycpu()->idleproc)
 
 extern struct proc_struct *initproc;

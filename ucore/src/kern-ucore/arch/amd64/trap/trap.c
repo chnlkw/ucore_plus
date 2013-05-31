@@ -46,7 +46,7 @@ void idt_init(void)
 void syscall_init()
 {
 	extern void syscall_entry();
-	extern void fastcall_entry();
+	//extern void fastcall_entry();
 	writemsr(MSR_EFER, readmsr(MSR_EFER) | (1 << 0));
 	writemsr(MSR_SFMASK, FL_IF); // set EFLAGS
 	writemsr(MSR_LSTAR, (uint64_t)syscall_entry); // set syscall entry
@@ -222,6 +222,7 @@ static void trap_dispatch(struct trapframe *tf)
 		syscall();
 		break;
 	case T_FAST_SYSCALL:
+		tf->tf_rsp = mycpu()->user_rsp;
 		syscall_linux();
 		/* IPI */
 	case T_TLBFLUSH:
@@ -263,23 +264,7 @@ static void trap_dispatch(struct trapframe *tf)
 int c=0;
 void trap(struct trapframe *tf)
 {
-
-	//
 	// used for previous projects
-	if (debug )//|| (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER && tf->tf_ss != 0x10))
-	{
-	uint64_t gs_base = readmsr(MSR_GS_KERNBASE);
-	if(gs_base)kprintf("WARNING : gs_base is not 0x%x\n", gs_base);
-		kprintf("== when enter trap===\n");
-		if (gs_base)print_trapframe(tf);
-		kprintf("trapno 0x%x\n", tf->tf_trapno);
-		kprintf("cr3 is 0x%x\n", rcr3());
-		kprintf("mycpu : ");
-		kprintf("0x%x\n", mycpu());
-		if (tf->tf_trapno == T_PGFLT)
-			kprintf("PF : 0x%x\n", rcr2());
-		kprintf("=====================\n");
-	}
 	if (current == NULL) {
 		trap_dispatch(tf);
 	} else {
@@ -310,17 +295,6 @@ void trap(struct trapframe *tf)
 		if (!in_kernel || (current == idleproc && otf == NULL))
 			kern_leave();
 	}
-	if (debug)
-	{
-
-		kprintf("== when leave trap===\n");
-		kprintf("cr3 is 0x%x\n", rcr3());
-		kprintf("mycpu : ");
-		kprintf("0x%x\n", mycpu());
-		do_debug(tf);
-		kprintf("=====================\n");
-	}
-
 }
 
 int ucore_in_interrupt()

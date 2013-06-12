@@ -186,7 +186,7 @@ static int pgfault_handler(struct trapframe *tf)
 		mm = current->mm;
 	}
 uintptr_t addr = rcr2();
-if (addr >= 0x20060000 && addr <= 0x30000000) 
+if (addr >= 0x20060000 && addr <= 0x00000fffefff2040) 
 {
 	print_pgfault(tf);
 	do_debug(tf);
@@ -198,8 +198,12 @@ static void trap_dispatch(struct trapframe *tf)
 {
 	char c;
 	int ret;
+uintptr_t addr;
 	switch (tf->tf_trapno) {
 	case T_PGFLT:
+//addr = rcr2();
+//if (addr >= 0x20060000 && addr <= 0x00000fffefff2040) 
+//	kprintf("in: user rsp %p\n",tf->tf_rsp);
 		if ((ret = pgfault_handler(tf)) != 0) {
 			print_trapframe(tf);
 			if (current == NULL) {
@@ -216,14 +220,18 @@ static void trap_dispatch(struct trapframe *tf)
 				do_exit(-E_KILLED);
 			}
 		}
+//if (addr >= 0x20060000 && addr <= 0x00000fffefff2040) 
+//		kprintf("out :user rsp %p\n",tf->tf_rsp);
 		break;
 	case T_SYSCALL:
 	case 0x6:
 		syscall();
 		break;
 	case T_FAST_SYSCALL:
-		tf->tf_rsp = mycpu()->user_rsp;
+		assert(tf->tf_rsp == mycpu()->user_rsp);
+	//	kprintf("in: user rsp %p\n",tf->tf_rsp);
 		syscall_linux();
+	//	kprintf("out :user rsp %p\n",tf->tf_rsp);
 		/* IPI */
 	case T_TLBFLUSH:
 		lcr3(rcr3());	

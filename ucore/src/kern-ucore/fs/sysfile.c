@@ -414,7 +414,7 @@ int sysfile_getdirentry(int fd, struct dirent *__direntp, uint32_t * len_store)
 	direntp->d_reclen = sizeof(struct dirent);
 	/* libc will ignore entries with d_ino==0 */
 	direntp->d_ino = 1;
-kprintf("getdirentry : %d 0x%x 0x%x\n", fd, __direntp, len_store);
+//kprintf("getdirentry : %d %p %p\n", fd, __direntp, len_store);
 
 	int ret = 0;
 	lock_mm(mm);
